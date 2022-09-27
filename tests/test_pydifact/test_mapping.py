@@ -114,4 +114,62 @@ class TestMapping:
         obj = Order()
         obj.from_message(message)
 
-        assert isinstance(obj.purchase_order_id.to_segments(), BGM)
+        # assert isinstance(obj.purchase_order_id.to_segments(), BGM)
+
+
+class SmallOrder(mapping.SegmentGroup):
+    bgm = mapping.Segment("BGM", mandatory=True)
+    # dtm = mapping.Segment("DTM", mandatory=True)
+    ftx = mapping.Segment("FTX", mandatory=True)
+
+
+class BigOrder(mapping.SegmentGroup):
+    bgm = mapping.Segment("BGM", mandatory=True)
+    bgm_2 = mapping.Segment("BGM", mandatory=True)
+    dtm = mapping.Segment("DTM", mandatory=True)
+    dtm_2 = mapping.Segment("DTM", mandatory=True)
+    ftx = mapping.Segment("FTX", mandatory=True)
+
+
+smpl_small = """UNA:+.?*'
+UNB+UNOA:4+5021376940009:14+1111111111111:14+200421:1000+0001+ORDERS'
+UNH+1+ORDERS:D:01B:UN:EAN010'
+BGM+220+123456+9'
+DTM+137:20150410:102'
+FTX+DIN+++DELIVERY INSTRUCTIONS DESCRIPTION'
+UNT+1+27'
+UNZ+1+0001'"""
+
+smpl_big = """UNA:+.?*'
+UNB+UNOA:4+5021376940009:14+1111111111111:14+200421:1000+0001+ORDERS'
+UNH+1+ORDERS:D:01B:UN:EAN010'
+BGM+220+123456+9'
+BGM+XXX+654321+0'
+DTM+137:20150410:102'
+DTM+2:20150710:102'
+FTX+DIN+++DELIVERY INSTRUCTIONS DESCRIPTION'
+UNT+1+27'
+UNZ+1+0001'"""
+
+
+class TestGeneralImpl:
+    def test_deep_copy_hack(self):
+        interchange = Interchange.from_str(smpl_small)
+        message = next(interchange.get_messages())
+
+        obj = SmallOrder()
+        obj.from_message(message)
+        print(obj)
+
+        # obj_big = BigOrder()
+        # obj_big.from_message()
+
+
+def test_to_segment_dict():
+    interchange = Interchange.from_str(SAMPLE)
+    message = next(interchange.get_messages())
+
+    obj = Order()
+    obj.from_message(message)
+    segment_dict = obj.to_segment_dict()
+    print(obj)

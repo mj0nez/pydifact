@@ -42,6 +42,7 @@ def assert_n_max(s, length):
 def assert_an(s, length):
     """checks if s is alphanumeric and has a given length."""
     assert len(s) == length
+    # TODO verify is alpha numeric - currently duplicates assert_an_max
 
 
 def assert_an_max(s, length):

@@ -146,15 +146,21 @@ class Segment(AbstractMappingComponent):
         segment = iterator.next()
 
         if self.tag == segment.tag:
+            # current segment matches mapped segment
             self.__component__ = segment
             self.__present__ = True
             return
-
+        # no match...
         if self.mandatory:
+            # ... but mapped segment is mandatory at this position
             raise EDISyntaxError("Missing %s, found %s" % (self.tag, segment))
 
+        # ... but mapped segment is optional
+        # optional is not present
         self.__present__ = False
 
+        # current segment does not match optional Segment
+        # reset iterator to check current segment against next mapping element
         iterator.prev()
 
     def to_segments(self):
@@ -199,7 +205,7 @@ class SegmentGroup(AbstractMappingComponent, metaclass=SegmentGroupMetaClass):
         try:
             while True:
                 component_name = next(icomponent)
-                component = getattr(self, component_name)
+                component: Segment = getattr(self, component_name)
                 component.from_segments(iterator)
         except StopIteration:
             pass
