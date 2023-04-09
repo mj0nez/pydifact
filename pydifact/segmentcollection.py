@@ -22,15 +22,15 @@
 
 import collections.abc as collections
 from typing import Callable, Iterable, List, Optional, Tuple, Union
+import codecs
 import datetime
 import warnings
 
 from pydifact.api import EDISyntaxError
+from pydifact.control import Characters
 from pydifact.parser import Parser
 from pydifact.segments import Segment
 from pydifact.serializer import Serializer
-from pydifact.control import Characters
-import codecs
 
 
 class AbstractSegmentsContainer:
@@ -78,7 +78,7 @@ class AbstractSegmentsContainer:
 
     @classmethod
     def from_segments(
-        cls, segments: list or collections.Iterable
+        cls, segments: Union[List, Iterable]
     ) -> "AbstractSegmentsContainer":
         """Create a new AbstractSegmentsContainer instance from a iterable list of segments.
 
@@ -91,7 +91,9 @@ class AbstractSegmentsContainer:
         return cls().add_segments(segments)
 
     def get_segments(
-        self, name: str, predicate: Callable[[Segment], bool] = None
+        self,
+        name: str,
+        predicate: Callable = None,  # Python3.9+ Callable[[Segment], bool]
     ) -> list:
         """Get all the segments that match the requested name.
 
@@ -104,7 +106,9 @@ class AbstractSegmentsContainer:
                 yield segment
 
     def get_segment(
-        self, name: str, predicate: Callable[[Segment], bool] = None
+        self,
+        name: str,
+        predicate: Callable = None,  # Python3.9+ Callable[[Segment], bool]
     ) -> Optional[Segment]:
         """Get the first segment that matches the requested name.
 
@@ -121,7 +125,7 @@ class AbstractSegmentsContainer:
     def split_by(
         self,
         start_segment_tag: str,
-    ) -> Iterable["RawSegmentCollection"]:
+    ) -> Iterable:  # Python3.9+ Iterable["RawSegmentCollection"]
         """Split a segment collection by tag.
 
         Everything before the first start segment is ignored, so if no matching
@@ -150,7 +154,7 @@ class AbstractSegmentsContainer:
             yield current_list
 
     def add_segments(
-        self, segments: List[Segment] or collections.Iterable
+        self, segments: Union[List[Segment], Iterable]
     ) -> "AbstractSegmentsContainer":
         """Add multiple segments to the collection. Passing a UNA segment means setting/overriding the control
         characters and setting the serializer to output the Service String Advice. If you wish to change the control
@@ -526,9 +530,7 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         return self
 
     @classmethod
-    def from_segments(
-        cls, segments: Union[list, collections.Iterable]
-    ) -> "Interchange":
+    def from_segments(cls, segments: Union[list, Iterable]) -> "Interchange":
         segments = iter(segments)
 
         first_segment = next(segments)
@@ -542,8 +544,18 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         if len(unb.elements) < 4:
             raise EDISyntaxError("Missing elements in UNB header")
 
+        # In syntax version 3 the year is formatted using two digits, while in version 4 four digits are used.
+        # Since some EDIFACT files in the wild don't adhere to this specification, we just use whatever format seems
+        # more appropriate according to the length of the date string.
+        if len(unb.elements[3][0]) == 6:
+            datetime_fmt = "%y%m%d-%H%M"
+        elif len(unb.elements[3][0]) == 8:
+            datetime_fmt = "%Y%m%d-%H%M"
+        else:
+            raise EDISyntaxError("Timestamp of file-creation malformed.")
+
         datetime_str = "-".join(unb.elements[3])
-        timestamp = datetime.datetime.strptime(datetime_str, "%y%m%d-%H%M")
+        timestamp = datetime.datetime.strptime(datetime_str, datetime_fmt)
         interchange = Interchange(
             syntax_identifier=unb.elements[0],
             sender=unb.elements[1],

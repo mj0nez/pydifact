@@ -45,6 +45,12 @@ def assert_segments(serializer, expected: str, segments: list):
     assert expected == collection
 
 
+def test_una_breakline(interchange):
+    initstring = ":+,? '"
+    interchange.add_segment(Segment("UNA", initstring))
+    assert interchange.serialize(break_lines=True).startswith("UNA" + initstring + "\n")
+
+
 def test_una_integrity1(interchange):
     initstring = ":+,? '"
     interchange.add_segment(Segment("UNA", initstring))
@@ -68,6 +74,10 @@ def test_basic1(serializer):
 
 def test_basic2(serializer):
     assert_segments(serializer, "RFF+PD+50515", [Segment("RFF", "PD", "50515")])
+
+
+def test_empty_segment(serializer):
+    assert_segments(serializer, "RFF+PD++50515", [Segment("RFF", "PD", None, "50515")])
 
 
 def test_with_una_in_segments(serializer):
