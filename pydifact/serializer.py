@@ -19,12 +19,12 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+import re
 from typing import List, Optional
 
 from pydifact.control.characters import Characters
-import re
 
-from pydifact.segments import Segment
+from .segments import Segment
 
 
 class Serializer:
@@ -55,6 +55,10 @@ class Serializer:
         :param break_lines: if True, insert line break after each segment terminator.
         """
         collection_parts = []
+
+        if isinstance(segments, Segment):
+            # verify input is list
+            segments = [segments]
 
         # first, check if UNA header is wanted.
         if with_una_header:

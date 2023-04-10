@@ -20,11 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+import codecs
 import collections.abc as collections
 from typing import Callable, Iterable, List, Optional, Tuple, Union
-import codecs
 import datetime
 import warnings
+from typing import Callable, Generator, Iterable, List, Optional, Tuple, Union
 
 from pydifact.api import EDISyntaxError
 from pydifact.control import Characters
@@ -94,7 +95,7 @@ class AbstractSegmentsContainer:
         self,
         name: str,
         predicate: Callable = None,  # Python3.9+ Callable[[Segment], bool]
-    ) -> list:
+    ) -> Generator[Segment, None, None]:
         """Get all the segments that match the requested name.
 
         :param name: The name of the segments to return
@@ -406,6 +407,7 @@ class Message(AbstractSegmentsContainer):
         if not unh:
             raise EDISyntaxError("Missing header in message")
         return cls.from_segments(unh[0], unh[1], todo)
+
     def validate(self):
         """Validates the message.
 

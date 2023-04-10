@@ -20,14 +20,22 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
-from pydifact import segmentcollection, parser, segments, serializer, token, tokenizer
+from pydifact import (
+    control,
+    parser,
+    segmentcollection,
+    segments,
+    serializer,
+    token,
+    tokenizer,
+)
 
-__version__ = "0.1.5"
+__version__ = "0.2.0"
 
 from . import mapping
 from .control.characters import Characters
-from .segmentcollection import SegmentCollection
 from .parser import Parser
+from .segmentcollection import SegmentCollection
 from .segments import Segment
 from .serializer import Serializer
 from .token import Token

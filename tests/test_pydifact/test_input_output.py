@@ -18,7 +18,9 @@ import os
 from pydifact.segmentcollection import Interchange
 from pydifact.segments import Segment
 
-path = os.path.dirname(os.path.realpath(__file__)) + "/data"
+import conftest
+
+path = conftest.data_path_test
 
 
 def test_wikipedia_file():

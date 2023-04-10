@@ -19,7 +19,7 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
-from typing import Union, List
+from typing import List, Union
 
 from pydifact.api import EDISyntaxError, PluginMount
 from pydifact.control import Characters
@@ -101,18 +101,6 @@ class Segment(SegmentProvider):
             return False
         return True
 
-
-class EDIenergySegment(Segment):
-
-    def __init__(self, tag: str, *elements: Union[str, List[str]]):
-        super().__init__(tag, *elements)
-
-    def validate(self) -> bool:
-        if not super().validate():
-            return False
-        else:
-            # TODO add validation method for EDI@Energy
-            pass
 
 class SegmentFactory:
     """Factory for producing segments."""
