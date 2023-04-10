@@ -22,6 +22,7 @@
 
 import codecs
 import collections.abc as collections
+from typing import Callable, Iterable, List, Optional, Tuple, Union
 import datetime
 import warnings
 from typing import Callable, Generator, Iterable, List, Optional, Tuple, Union
@@ -545,8 +546,18 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         if len(unb.elements) < 4:
             raise EDISyntaxError("Missing elements in UNB header")
 
+        # In syntax version 3 the year is formatted using two digits, while in version 4 four digits are used.
+        # Since some EDIFACT files in the wild don't adhere to this specification, we just use whatever format seems
+        # more appropriate according to the length of the date string.
+        if len(unb.elements[3][0]) == 6:
+            datetime_fmt = "%y%m%d-%H%M"
+        elif len(unb.elements[3][0]) == 8:
+            datetime_fmt = "%Y%m%d-%H%M"
+        else:
+            raise EDISyntaxError("Timestamp of file-creation malformed.")
+
         datetime_str = "-".join(unb.elements[3])
-        timestamp = datetime.datetime.strptime(datetime_str, "%y%m%d-%H%M")
+        timestamp = datetime.datetime.strptime(datetime_str, datetime_fmt)
         interchange = Interchange(
             syntax_identifier=unb.elements[0],
             sender=unb.elements[1],
