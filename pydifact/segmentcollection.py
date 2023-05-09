@@ -430,7 +430,6 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         recipient: str,
         control_reference: str,
         syntax_identifier: Tuple[str, int],
-        delimiters: Characters = Characters(),
         timestamp: datetime.datetime = None,
         *args,
         **kwargs
@@ -440,8 +439,17 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         self.recipient = recipient
         self.control_reference = control_reference
         self.syntax_identifier = syntax_identifier
-        self.delimiters = delimiters
         self.timestamp = timestamp or datetime.datetime.now()
+
+    @property
+    def delimiters(self) -> Characters:
+        # alias for characters to
+        warnings.warn(
+            "Usage of Interchange.delimiter is deprecated and will no longer be available in v0.2, "
+            "use characters instead.",
+            DeprecationWarning,
+        )
+        return self.characters
 
     def get_header_segment(self) -> Segment:
         return Segment(
