@@ -363,7 +363,7 @@ class Message(AbstractSegmentsContainer):
     HEADER_TAG = "UNH"
     FOOTER_TAG = "UNT"
 
-    def __init__(self, reference_number: str, identifier: Tuple, *args, **kwargs):
+    def __init__(self, reference_number: str, identifier: List[str], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.reference_number = reference_number
         self.identifier = identifier
