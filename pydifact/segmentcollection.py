@@ -433,7 +433,7 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         syntax_identifier: List[Union[str, int]],
         timestamp: datetime.datetime = None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.sender = sender
@@ -444,7 +444,7 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
 
     @property
     def delimiters(self) -> Characters:
-        # alias for characters to
+        # alias for backwards compatibility
         warnings.warn(
             "Usage of Interchange.delimiter is deprecated and will no longer be available in v0.2, "
             "use characters instead.",
@@ -454,7 +454,7 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
 
     @delimiters.setter
     def delimiters(self, delimiters: Characters) -> None:
-        # alias for characters to
+        # alias for backwards compatibility
         warnings.warn(
             "Usage of Interchange.delimiter is deprecated and will no longer be available in v0.2, "
             "use characters instead.",
