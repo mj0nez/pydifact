@@ -505,7 +505,11 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         for segment in self.segments:
             if segment.tag == "UNH":
                 if not message:
-                    message = Message(segment.elements[0], segment.elements[1])
+                    message = Message(
+                        reference_number=segment.elements[0],
+                        identifier=segment.elements[1],
+                        characters=self.characters,
+                    )
                     last_segment = segment
                 else:
                     raise EDISyntaxError(
