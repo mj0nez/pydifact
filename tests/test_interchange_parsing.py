@@ -18,7 +18,7 @@ import pytest
 
 from pydifact.control.characters import Characters
 from pydifact.parser import Parser
-from pydifact.segmentcollection import Interchange
+from pydifact.segmentcollection import Interchange, Message
 
 
 @pytest.fixture
@@ -70,3 +70,11 @@ def test_configured_parser_and_no_una(interchange_str):
 
     i = Interchange.from_str(interchange_str, parser=parser)
     assert i.characters.decimal_point == "."
+
+
+def test_character_passing_to_message(interchange_str):
+    parser = Parser(characters=Characters.from_str("UNA:+.? '"))
+
+    i: Interchange = Interchange.from_str(interchange_str, parser=parser)
+    m: Message = next(i.get_messages())
+    assert m.characters.decimal_point == "."
