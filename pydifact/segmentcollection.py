@@ -426,8 +426,8 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
 
     def __init__(
         self,
-        sender: str,
-        recipient: str,
+        sender: Union[str, List[str]],
+        recipient: Union[str, List[str]],
         control_reference: str,
         syntax_identifier: List[Union[str, int]],
         timestamp: datetime.datetime = None,
