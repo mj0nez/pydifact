@@ -20,11 +20,12 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+from __future__ import annotations
+
 import codecs
 import datetime
 import warnings
-from collections.abc import Callable, Iterable
-from typing import List, Optional, Tuple, Union
+from typing import Callable, Iterable, List, Optional, Union
 
 from pydifact.api import EDISyntaxError
 from pydifact.control import Characters
@@ -98,7 +99,7 @@ class AbstractSegmentsContainer:
         cls,
         segments: Union[List, Iterable],
         characters: Optional[Characters] = None,
-    ) -> "AbstractSegmentsContainer":
+    ) -> AbstractSegmentsContainer:
         """Create a new AbstractSegmentsContainer instance from a iterable list of segments.
 
         :param segments: The segments of the EDI interchange
@@ -145,7 +146,7 @@ class AbstractSegmentsContainer:
     def split_by(
         self,
         start_segment_tag: str,
-    ) -> Iterable:  # Python3.9+ Iterable["RawSegmentCollection"]
+    ) -> Iterable:  # Python3.9+ Iterable[RawSegmentCollection]
         """Split a segment collection by tag.
 
         Everything before the first start segment is ignored, so if no matching
@@ -175,7 +176,7 @@ class AbstractSegmentsContainer:
 
     def add_segments(
         self, segments: Union[List[Segment], Iterable]
-    ) -> "AbstractSegmentsContainer":
+    ) -> AbstractSegmentsContainer:
         """Add multiple segments to the collection. Passing a UNA segment means setting/overriding the control
         characters and setting the serializer to output the Service String Advice. If you wish to change the control
         characters from the default and not output the Service String Advice, change self.characters instead,
@@ -189,7 +190,7 @@ class AbstractSegmentsContainer:
 
         return self
 
-    def add_segment(self, segment: Segment) -> "AbstractSegmentsContainer":
+    def add_segment(self, segment: Segment) -> AbstractSegmentsContainer:
         """Append a segment to the collection.
 
         Note: skips segments that are header oder footer tags of this segment container type.
@@ -260,7 +261,7 @@ class FileSourcableMixin:
     @classmethod
     def from_file(
         cls, file: str, encoding: str = "iso8859-1", parser: Optional[Parser] = None
-    ) -> "FileSourcableMixin":
+    ) -> FileSourcableMixin:
         """Create a Interchange instance from a file.
 
         Raises FileNotFoundError if filename is not found.
@@ -283,7 +284,7 @@ class UNAHandlingMixin:
     For v0.2 drop this class and move add_segment() to Interchange class.
     """
 
-    def add_segment(self, segment: Segment) -> "UNAHandlingMixin":
+    def add_segment(self, segment: Segment) -> UNAHandlingMixin:
         """Append a segment to the collection. Passing a UNA segment means setting/overriding the control
         characters and setting the serializer to output the Service String Advice. If you wish to change the control
         characters from the default and not output the Service String Advice, change self.characters instead,
@@ -492,7 +493,7 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
             self.control_reference,
         )
 
-    def get_messages(self) -> List[Message]:
+    def get_messages(self) -> Iterable[Message]:
         """parses a list of messages out of the internal segments.
 
         :raises EDISyntaxError if constraints are not met (e.g. UNH/UNT both correct)
@@ -532,7 +533,7 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
             if not last_segment.tag == "UNT":
                 raise EDISyntaxError("UNH segment was not closed with a UNT segment.")
 
-    def add_message(self, message: Message) -> "Interchange":
+    def add_message(self, message: Message) -> Interchange:
         segments = (
             [message.get_header_segment()]
             + message.segments
@@ -544,7 +545,7 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
     @classmethod
     def from_segments(
         cls, segments: Union[list, Iterable], characters: Optional[Characters] = None
-    ) -> "Interchange":
+    ) -> Interchange:
         segments = iter(segments)
 
         first_segment = next(segments)
