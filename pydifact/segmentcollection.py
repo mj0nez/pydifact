@@ -451,6 +451,16 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         )
         return self.characters
 
+    @delimiters.setter
+    def delimiters(self, delimiters: Characters) -> None:
+        # alias for characters to
+        warnings.warn(
+            "Usage of Interchange.delimiter is deprecated and will no longer be available in v0.2, "
+            "use characters instead.",
+            DeprecationWarning,
+        )
+        self.characters = delimiters
+
     def get_header_segment(self) -> Segment:
         return Segment(
             self.HEADER_TAG,
