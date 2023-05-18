@@ -429,7 +429,7 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         sender: str,
         recipient: str,
         control_reference: str,
-        syntax_identifier: Tuple[str, int],
+        syntax_identifier: List[Union[str, int]],
         timestamp: datetime.datetime = None,
         *args,
         **kwargs
