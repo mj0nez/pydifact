@@ -32,6 +32,7 @@ from pydifact.control import Characters
 from pydifact.parser import Parser
 from pydifact.segments import Segment
 from pydifact.serializer import Serializer
+from pydifact.service_segments import UNB, UNZ, UNH, UNT
 
 
 class AbstractSegmentsContainer:
@@ -383,16 +384,14 @@ class Message(AbstractSegmentsContainer):
         return "{}.{}".format(self.identifier[1], self.identifier[2])
 
     def get_header_segment(self) -> Segment:
-        return Segment(
-            self.HEADER_TAG,
+        return UNH.from_elements(
             self.reference_number,
             [str(i) for i in self.identifier],
             *self.extra_header_elements,
         )
 
     def get_footer_segment(self) -> Segment:
-        return Segment(
-            self.FOOTER_TAG,
+        return UNT.from_elements(
             str(len(self.segments) + 2),
             self.reference_number,
         )
@@ -462,9 +461,8 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         )
         self.characters = delimiters
 
-    def get_header_segment(self) -> Segment:
-        return Segment(
-            self.HEADER_TAG,
+    def get_header_segment(self) -> UNB:
+        return UNB.from_elements(
             [str(i) for i in self.syntax_identifier],
             self.sender,
             self.recipient,
@@ -487,8 +485,7 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         if cnt == 0:
             cnt = len(self.segments)
 
-        return Segment(
-            self.FOOTER_TAG,
+        return UNZ.from_elements(
             str(cnt),
             self.control_reference,
         )
@@ -504,7 +501,7 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         message = None
         last_segment = None
         for segment in self.segments:
-            if segment.tag == "UNH":
+            if segment.tag == Message.HEADER_TAG:
                 if not message:
                     message = Message(
                         reference_number=segment.elements[0],
@@ -516,7 +513,7 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
                     raise EDISyntaxError(
                         "Missing UNT segment before new UNH: {}".format(segment)
                     )
-            elif segment.tag == "UNT":
+            elif segment.tag == Message.FOOTER_TAG:
                 if message:
                     yield message
                     message = None
@@ -529,9 +526,8 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
                 if message:
                     message.add_segment(segment)
                 last_segment = segment
-        if last_segment:
-            if not last_segment.tag == "UNT":
-                raise EDISyntaxError("UNH segment was not closed with a UNT segment.")
+        if last_segment and last_segment.tag != Message.FOOTER_TAG:
+            raise EDISyntaxError("UNH segment was not closed with a UNT segment.")
 
     def add_message(self, message: Message) -> Interchange:
         segments = (
@@ -550,27 +546,14 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
 
         first_segment = next(segments)
         if first_segment.tag == "UNA":
-            unb = next(segments)
+            unb: UNB = next(segments)
         elif first_segment.tag == "UNB":
-            unb = first_segment
+            unb: UNB = first_segment
         else:
             raise EDISyntaxError("An interchange must start with UNB or UNA and UNB")
-        # Loosy syntax check :
-        if len(unb.elements) < 4:
-            raise EDISyntaxError("Missing elements in UNB header")
-
-        # In syntax version 3 the year is formatted using two digits, while in version 4 four digits are used.
-        # Since some EDIFACT files in the wild don't adhere to this specification, we just use whatever format seems
-        # more appropriate according to the length of the date string.
-        if len(unb.elements[3][0]) == 6:
-            datetime_fmt = "%y%m%d-%H%M"
-        elif len(unb.elements[3][0]) == 8:
-            datetime_fmt = "%Y%m%d-%H%M"
-        else:
-            raise EDISyntaxError("Timestamp of file-creation malformed.")
 
         datetime_str = "-".join(unb.elements[3])
-        timestamp = datetime.datetime.strptime(datetime_str, datetime_fmt)
+        timestamp = datetime.datetime.strptime(datetime_str, unb.datetime_format)
         interchange = Interchange(
             syntax_identifier=unb.elements[0],
             sender=unb.elements[1],

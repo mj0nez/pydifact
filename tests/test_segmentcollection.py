@@ -20,7 +20,9 @@ import pytest
 
 from pydifact.api import EDISyntaxError
 from pydifact.segmentcollection import Interchange, Message, RawSegmentCollection
-from pydifact.segments import Segment
+from pydifact.segments import Segment, SegmentFactory
+
+# from pydifact.service_segments import UNB
 
 
 def test_from_file():
@@ -190,9 +192,11 @@ def test_empty_interchange_from_str():
 def test_empty_interchange_w_una():
     i = Interchange.from_segments(
         [
-            Segment("UNA", ":+,? '"),
-            Segment("UNB", ["UNOC", "1"], "1234", "3333", ["200102", "2212"], "42"),
-            Segment("UNZ", "0", "42"),
+            SegmentFactory.create_segment("UNA", ":+,? '"),
+            SegmentFactory.create_segment(
+                "UNB", ["UNOC", "1"], "1234", "3333", ["200102", "2212"], "42"
+            ),
+            SegmentFactory.create_segment("UNZ", "0", "42"),
         ]
     )
     assert str(i) == ("UNA:+,? '" "UNB+UNOC:1+1234+3333+200102:2212+42'" "UNZ+0+42'")
