@@ -74,8 +74,9 @@ class SegmentInterface:
 class Segment(SegmentInterface, SegmentProvider):
     """Represents a low-level segment of an EDI interchange.
 
-    This class is used internally. read-world implementations of specialized should subclass Segment and provide
-    the `tag` and `validate` attributes.
+    This class is used internally. read-world implementations of specialized
+    segments should subclass SegmentInterface and SegmentProvider and
+    implement the `tag` and `validate` attributes.
     """
 
     # tag is not a class attribute in this case, as each Segment instance could have another tag.
