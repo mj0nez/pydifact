@@ -21,8 +21,7 @@ import pytest
 from pydifact.api import EDISyntaxError
 from pydifact.segmentcollection import Interchange, Message, RawSegmentCollection
 from pydifact.segments import Segment, SegmentFactory
-
-# from pydifact.service_segments import UNB
+from pydifact.service_segments import UNB
 
 
 def test_from_file():
@@ -293,8 +292,7 @@ def test_interchange_with_extra_header_elements():
         "UNZ+1+333333333'"
     )
     i = Interchange.from_str(edi_str)
-    assert i.get_header_segment() == Segment(
-        "UNB",
+    assert i.get_header_segment() == UNB(
         ["UNOC", "3"],
         ["9901011000001", "500"],
         ["9900222000002", "500"],

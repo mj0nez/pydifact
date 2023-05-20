@@ -17,6 +17,7 @@ import os
 
 from pydifact.segmentcollection import Interchange
 from pydifact.segments import Segment
+from pydifact.service_segments import UNB
 
 path = os.path.dirname(os.path.realpath(__file__)) + "/data"
 
@@ -24,8 +25,8 @@ path = os.path.dirname(os.path.realpath(__file__)) + "/data"
 def test_wikipedia_file():
     message = Interchange.from_file("{}/wikipedia.edi".format(path))
     # make some checks
-    assert message.get_header_segment() == Segment(
-        "UNB", ["IATB", "1"], "6XPPC", "LHPPC", ["940101", "0950"], "1"
+    assert message.get_header_segment() == UNB(
+        ["IATB", "1"], "6XPPC", "LHPPC", ["940101", "0950"], "1"
     )
     assert message.get_segment("IFT") == Segment("IFT", "3", "XYZCOMPANY AVAILABILITY")
     assert message.get_segment("TVL") == Segment(
@@ -36,8 +37,7 @@ def test_wikipedia_file():
 def test_invoice_file():
     message = Interchange.from_file("{}/invoice1.edi".format(path))
     # make some checks
-    assert message.get_header_segment() == Segment(
-        "UNB",
+    assert message.get_header_segment() == UNB(
         ["UNOA", "1"],
         "01010000253001",
         "O0013000093SCHA-Z59",

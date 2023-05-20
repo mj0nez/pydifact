@@ -384,14 +384,14 @@ class Message(AbstractSegmentsContainer):
         return "{}.{}".format(self.identifier[1], self.identifier[2])
 
     def get_header_segment(self) -> Segment:
-        return UNH.from_elements(
+        return UNH(
             self.reference_number,
             [str(i) for i in self.identifier],
             *self.extra_header_elements,
         )
 
     def get_footer_segment(self) -> Segment:
-        return UNT.from_elements(
+        return UNT(
             str(len(self.segments) + 2),
             self.reference_number,
         )
@@ -462,7 +462,7 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         self.characters = delimiters
 
     def get_header_segment(self) -> UNB:
-        return UNB.from_elements(
+        return UNB(
             [str(i) for i in self.syntax_identifier],
             self.sender,
             self.recipient,
@@ -485,7 +485,7 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         if cnt == 0:
             cnt = len(self.segments)
 
-        return UNZ.from_elements(
+        return UNZ(
             str(cnt),
             self.control_reference,
         )

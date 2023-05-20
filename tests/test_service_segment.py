@@ -3,7 +3,7 @@ from pydifact.parser import Parser
 
 
 def test_service_segment():
-    assert isinstance(UNB.from_elements(["a", "b"]), UNB)
+    assert isinstance(UNB(["a", "b"]), UNB)
 
 
 samples = [

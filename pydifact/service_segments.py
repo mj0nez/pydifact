@@ -1,25 +1,18 @@
 from pydifact.api import EDISyntaxError
-from pydifact.segments import Segment, SegmentFactory
+from pydifact.segments import SegmentInterface, SegmentProvider, SegmentFactory
 
 from typing import Union, List
 
 
-class FromElementsInterface:
-    tag: str
-
-    @classmethod
-    def from_elements(cls, *elements: Union[str, List[str], None]):
-        return cls(cls.tag, *elements)
-
-
-class UNB(Segment, FromElementsInterface):
+class UNB(SegmentInterface, SegmentProvider):
     __omitted__ = False
 
     tag = "UNB"
 
-    def validate(self) -> bool:
-        super().validate()
+    def __init__(self, *elements: Union[str, List[str], None]) -> None:
+        self.elements = list(elements)
 
+    def validate(self) -> bool:
         if len(self.timestamp) not in (6, 8):
             raise EDISyntaxError("Timestamp of file-creation malformed.")
 
@@ -46,10 +39,13 @@ class UNB(Segment, FromElementsInterface):
         return datetime_fmt
 
 
-class UNZ(Segment, FromElementsInterface):
+class UNZ(SegmentInterface, SegmentProvider):
     __omitted__ = False
 
     tag = "UNZ"
+
+    def __init__(self, *elements: Union[str, List[str], None]) -> None:
+        self.elements = list(elements)
 
     @property
     def control_count(self) -> str:
@@ -59,11 +55,17 @@ class UNZ(Segment, FromElementsInterface):
     def control_reference(self) -> str:
         return self[1]
 
+    def validate(self) -> bool:
+        return True
 
-class UNH(Segment, FromElementsInterface):
+
+class UNH(SegmentInterface, SegmentProvider):
     __omitted__ = False
 
     tag = "UNH"
+
+    def __init__(self, *elements: Union[str, List[str], None]) -> None:
+        self.elements = list(elements)
 
     @property
     def message_reference_number(self) -> str:
@@ -101,8 +103,17 @@ class UNH(Segment, FromElementsInterface):
     def first_and_last_transfer(self) -> str:
         return self[3][1]
 
+    def validate(self) -> bool:
+        return True
 
-class UNT(Segment, FromElementsInterface):
+
+class UNT(SegmentInterface, SegmentProvider):
     __omitted__ = False
 
     tag = "UNT"
+
+    def __init__(self, *elements: Union[str, List[str], None]) -> None:
+        self.elements = list(elements)
+
+    def validate(self) -> bool:
+        return True
