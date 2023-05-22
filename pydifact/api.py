@@ -74,7 +74,7 @@ class Component(ABC):
         # argument description is implemented to provide a unified interface
         # a leaf yields itself, while a composite yields all matching children
         # and ONLY children!
-        return self
+        yield self
 
     @abstractmethod
     def to_dict(self) -> dict:
