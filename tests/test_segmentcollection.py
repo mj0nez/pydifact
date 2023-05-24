@@ -18,10 +18,10 @@ from typing import Iterable, List
 
 import pytest
 
-from pydifact import Serializer
-from pydifact.segmentcollection import Interchange, Message, RawSegmentCollection
-from pydifact.segments import Segment
 from pydifact.api import EDISyntaxError
+from pydifact.segmentcollection import Interchange, Message, RawSegmentCollection
+from pydifact.segments import Segment, SegmentFactory
+from pydifact.service_segments import UNB
 
 
 def test_from_file():
@@ -170,7 +170,7 @@ def test_empty_interchange(interchange):
     assert str(interchange) == ("UNB+UNOC:1+1234+3333+200102:2212+42'" "UNZ+0+42'")
 
 
-def test_empty_interchange_w_extra_header(interchange):
+def test_empty_interchange_w_extra_header():
     i = Interchange(
         sender="1234",
         recipient="3333",
@@ -191,9 +191,11 @@ def test_empty_interchange_from_str():
 def test_empty_interchange_w_una():
     i = Interchange.from_segments(
         [
-            Segment("UNA", ":+,? '"),
-            Segment("UNB", ["UNOC", "1"], "1234", "3333", ["200102", "2212"], "42"),
-            Segment("UNZ", "0", "42"),
+            SegmentFactory.create_segment("UNA", ":+,? '"),
+            SegmentFactory.create_segment(
+                "UNB", ["UNOC", "1"], "1234", "3333", ["200102", "2212"], "42"
+            ),
+            SegmentFactory.create_segment("UNZ", "0", "42"),
         ]
     )
     assert str(i) == ("UNA:+,? '" "UNB+UNOC:1+1234+3333+200102:2212+42'" "UNZ+0+42'")
@@ -225,21 +227,6 @@ def test_interchange_from_str_multi_messages():
     )
 
     assert len(list(i.get_messages()))
-
-
-def test_interchange_messages_from_str():
-    i = Interchange.from_str(
-        "UNB+UNOC:1+1234+3333+200102:2212+42'"
-        "UNH+42z42+PAORES:93:1:IA'"
-        "UNT+2+42z42'"
-        "UNZ+1+42'"
-    )
-    assert str(i) == (
-        "UNB+UNOC:1+1234+3333+200102:2212+42'"
-        "UNH+42z42+PAORES:93:1:IA'"
-        "UNT+2+42z42'"
-        "UNZ+1+42'"
-    )
 
 
 def test_faulty_interchange__UNH_not_closed():
@@ -295,3 +282,22 @@ def test_counting_of_messages(interchange, message):
     )
     i = Interchange.from_str(edi_str)
     assert i.serialize() == edi_str
+
+
+def test_interchange_with_extra_header_elements():
+    edi_str = (
+        "UNB+UNOC:3+9901011000001:500+9900222000002:500+230314:1015+333333333++TL'"
+        "UNH+42z42+PAORES:93:1:IA'"
+        "UNT+2+42z42'"
+        "UNZ+1+333333333'"
+    )
+    i = Interchange.from_str(edi_str)
+    assert i.get_header_segment() == UNB(
+        ["UNOC", "3"],
+        ["9901011000001", "500"],
+        ["9900222000002", "500"],
+        ["230314", "1015"],
+        "333333333",
+        "",
+        "TL",
+    )

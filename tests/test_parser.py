@@ -15,7 +15,7 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 from pydifact.parser import Parser
 from pydifact.segments import Segment
-
+from pydifact.control.characters import Characters
 import pytest
 
 # @pytest.fixture
@@ -113,31 +113,39 @@ def test_compare_equal_segments(parser, default_una_segment):
 def test_una_parser1(parser):
     # UNA headers are a special parsing task and must be processed correctly.
     tokens = parser.parse("UNA:+,? 'TEST'")
+    assert next(tokens) == Segment("UNA", ":+,? '")
     assert next(tokens) == Segment("TEST")
 
 
 def test_una_parser2(parser):
     # UNA headers are a special parsing task and must be processed correctly.
     tokens = parser.parse("UNA123456TEST6")
+    assert next(tokens) == Segment("UNA", "123456")
     assert next(tokens) == Segment("TEST")
 
 
 def test_una_parser3(parser):
     # UNA headers are a special parsing task and must be processed correctly.
     tokens = parser.parse("UNA12345'TEST'")
+    assert next(tokens) == Segment("UNA", "12345'")
     assert next(tokens) == Segment("TEST")
 
 
 def test_basic1(parser, default_una_segment):
     _assert_segments(
-        parser, default_una_segment, "RFF+PD:50515", [Segment("RFF", ["PD", "50515"])]
+        parser,
+        default_una_segment,
+        "RFF+PD:50515",
+        [Segment("UNA", ":+,? '"), Segment("RFF", ["PD", "50515"])],
     )
 
 
 def test_basic2(parser, default_una_segment):
-
     _assert_segments(
-        parser, default_una_segment, "RFF+PD+50515", [Segment("RFF", "PD", "50515")]
+        parser,
+        default_una_segment,
+        "RFF+PD+50515",
+        [Segment("UNA", ":+,? '"), Segment("RFF", "PD", "50515")],
     )
 
 
@@ -146,76 +154,109 @@ def test_escape_character(parser, default_una_segment):
         parser,
         default_una_segment,
         "ERC+10:The message does not make sense??",
-        [Segment("ERC", ["10", "The message does not make sense?"])],
+        [
+            Segment("UNA", ":+,? '"),
+            Segment("ERC", ["10", "The message does not make sense?"]),
+        ],
     )
 
 
 def test_escape_component_separator(parser, default_una_segment):
-
     _assert_segments(
         parser,
         default_una_segment,
         "ERC+10:Name?: Craig",
-        [Segment("ERC", ["10", "Name: Craig"])],
+        [Segment("UNA", ":+,? '"), Segment("ERC", ["10", "Name: Craig"])],
     )
 
 
 def test_escape_data_separator(parser, default_una_segment):
-
     _assert_segments(
         parser,
         default_una_segment,
         "DTM+735:?+0000:406",
-        [Segment("DTM", ["735", "+0000", "406"])],
+        [Segment("UNA", ":+,? '"), Segment("DTM", ["735", "+0000", "406"])],
     )
 
 
 def test_escape_decimal_point(parser, default_una_segment):
-
     _assert_segments(
         parser,
         default_una_segment,
         "QTY+136:12,235",
-        [Segment("QTY", ["136", "12,235"])],
+        [Segment("UNA", ":+,? '"), Segment("QTY", ["136", "12,235"])],
     )
 
 
 def test_escape_segment_terminator(parser, default_una_segment):
-
     _assert_segments(
         parser,
         default_una_segment,
         "ERC+10:Craig?'s",
-        [Segment("ERC", ["10", "Craig's"])],
+        [Segment("UNA", ":+,? '"), Segment("ERC", ["10", "Craig's"])],
     )
 
 
 def test_escape_sequence(parser, default_una_segment):
-
     _assert_segments(
         parser,
         default_una_segment,
         "ERC+10:?:?+???' - ?:?+???' - ?:?+???'",
-        [Segment("ERC", ["10", ":+?' - :+?' - :+?'"])],
+        [Segment("UNA", ":+,? '"), Segment("ERC", ["10", ":+?' - :+?' - :+?'"])],
     )
 
 
 def test_compound_starts_with_skipped(parser, default_una_segment):
-
     _assert_segments(
-        parser, default_una_segment, "IMD+::A", [Segment("IMD", ["", "", "A"])]
+        parser,
+        default_una_segment,
+        "IMD+::A",
+        [Segment("UNA", ":+,? '"), Segment("IMD", ["", "", "A"])],
     )
 
 
 def test_compound_contains_one_skipped(parser, default_una_segment):
-
     _assert_segments(
-        parser, default_una_segment, "IMD+A::B", [Segment("IMD", ["A", "", "B"])]
+        parser,
+        default_una_segment,
+        "IMD+A::B",
+        [Segment("UNA", ":+,? '"), Segment("IMD", ["A", "", "B"])],
     )
 
 
 def test_compound_contains_two_skipped(parser, default_una_segment):
-
     _assert_segments(
-        parser, default_una_segment, "IMD+A:::B", [Segment("IMD", ["A", "", "", "B"])]
+        parser,
+        default_una_segment,
+        "IMD+A:::B",
+        [Segment("UNA", ":+,? '"), Segment("IMD", ["A", "", "", "B"])],
     )
+
+
+def test_parsing_with_new_default_characters():
+    parser = Parser(characters=Characters.from_str("UNA:+,! '"))
+    segments = parser.parse("ERC+10:Craig!'s'")
+    assert [s for s in segments] == [
+        Segment("ERC", ["10", "Craig's"]),
+    ]
+
+
+def test_parsing_with_passed_characters_():
+    parser = Parser()
+    segments = parser.parse(
+        "ERC+10:Craig!'s'", characters=Characters.from_str("UNA:+,! '")
+    )
+    assert [s for s in segments] == [
+        Segment("ERC", ["10", "Craig's"]),
+    ]
+
+
+def test_parsing_with_passed_characters_but_respect_una():
+    parser = Parser()
+    segments = parser.parse(
+        "UNA:+,! 'ERC+10:Craig!'s'", characters=Characters.from_str("UNA:+,? '")
+    )
+    assert [s for s in segments] == [
+        Segment("UNA", ":+,! '"),
+        Segment("ERC", ["10", "Craig's"]),
+    ]

@@ -20,17 +20,19 @@
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
 
+from __future__ import annotations
+
 import codecs
 import datetime
 import warnings
-from collections.abc import Callable, Iterable
-from typing import List, Optional, Tuple, Union
+from typing import Callable, Iterable, List, Optional, Union
 
 from pydifact.api import EDISyntaxError
 from pydifact.control import Characters
 from pydifact.parser import Parser
 from pydifact.segments import Segment
 from pydifact.serializer import Serializer
+from pydifact.service_segments import UNB, UNZ, UNH, UNT
 
 
 class AbstractSegmentsContainer:
@@ -48,15 +50,22 @@ class AbstractSegmentsContainer:
     HEADER_TAG: str = None
     FOOTER_TAG: str = None
 
-    def __init__(self, extra_header_elements: List[Union[str, List[str]]] = None):
+    def __init__(
+        self,
+        extra_header_elements: List[Union[str, List[str]]] = None,
+        characters: Optional[Characters] = None,
+    ):
         """
         :param extra_header_elements: a list of elements to be appended at the end
           of the header segment (same format as Segment() constructor *elements).
+        :param characters: the set of control characters
         """
 
         # The segments that make up this message
         self.segments = []
-        self.characters = Characters()
+
+        # set of control characters
+        self.characters = characters or Characters()
 
         self.extra_header_elements = (
             extra_header_elements if extra_header_elements else []
@@ -66,29 +75,42 @@ class AbstractSegmentsContainer:
         self.has_una_segment = False
 
     @classmethod
-    def from_str(cls, string: str) -> "AbstractSegmentsContainer":
+    def from_str(
+        cls,
+        string: str,
+        parser: Optional[Parser] = None,
+        characters: Optional[Characters] = None,
+    ) -> "AbstractSegmentsContainer":
         """Create an instance from a string.
 
         This method is intended for usage in inheriting classes, not it AbstractSegmentsContainer itself.
         :param string: The EDI content
+        :param parser: A parser to convert the tokens to segments, defaults to `Parser`
+        :param characters: the set of control characters
         """
-        segments = Parser().parse(string)
+        if parser is None:
+            parser = Parser(characters=characters)
 
-        return cls.from_segments(segments)
+        segments = parser.parse(string)
+
+        return cls.from_segments(segments=segments, characters=parser.characters)
 
     @classmethod
     def from_segments(
-        cls, segments: Union[List, Iterable]
-    ) -> "AbstractSegmentsContainer":
+        cls,
+        segments: Union[List, Iterable],
+        characters: Optional[Characters] = None,
+    ) -> AbstractSegmentsContainer:
         """Create a new AbstractSegmentsContainer instance from a iterable list of segments.
 
         :param segments: The segments of the EDI interchange
+        :param characters: the set of control characters
         :type segments: list/iterable of Segment
         """
 
         # create a new instance of AbstractSegmentsContainer and return it
         # with the added segments
-        return cls().add_segments(segments)
+        return cls(characters=characters).add_segments(segments)
 
     def get_segments(
         self,
@@ -125,7 +147,7 @@ class AbstractSegmentsContainer:
     def split_by(
         self,
         start_segment_tag: str,
-    ) -> Iterable:  # Python3.9+ Iterable["RawSegmentCollection"]
+    ) -> Iterable:  # Python3.9+ Iterable[RawSegmentCollection]
         """Split a segment collection by tag.
 
         Everything before the first start segment is ignored, so if no matching
@@ -155,7 +177,7 @@ class AbstractSegmentsContainer:
 
     def add_segments(
         self, segments: Union[List[Segment], Iterable]
-    ) -> "AbstractSegmentsContainer":
+    ) -> AbstractSegmentsContainer:
         """Add multiple segments to the collection. Passing a UNA segment means setting/overriding the control
         characters and setting the serializer to output the Service String Advice. If you wish to change the control
         characters from the default and not output the Service String Advice, change self.characters instead,
@@ -169,7 +191,7 @@ class AbstractSegmentsContainer:
 
         return self
 
-    def add_segment(self, segment: Segment) -> "AbstractSegmentsContainer":
+    def add_segment(self, segment: Segment) -> AbstractSegmentsContainer:
         """Append a segment to the collection.
 
         Note: skips segments that are header oder footer tags of this segment container type.
@@ -238,7 +260,9 @@ class FileSourcableMixin:
     """
 
     @classmethod
-    def from_file(cls, file: str, encoding: str = "iso8859-1") -> "FileSourcableMixin":
+    def from_file(
+        cls, file: str, encoding: str = "iso8859-1", parser: Optional[Parser] = None
+    ) -> FileSourcableMixin:
         """Create a Interchange instance from a file.
 
         Raises FileNotFoundError if filename is not found.
@@ -251,7 +275,7 @@ class FileSourcableMixin:
 
         with open(file, encoding=encoding) as f:
             collection = f.read()
-        return cls.from_str(collection)
+        return cls.from_str(collection, parser=parser)
 
 
 class UNAHandlingMixin:
@@ -261,7 +285,7 @@ class UNAHandlingMixin:
     For v0.2 drop this class and move add_segment() to Interchange class.
     """
 
-    def add_segment(self, segment: Segment) -> "UNAHandlingMixin":
+    def add_segment(self, segment: Segment) -> UNAHandlingMixin:
         """Append a segment to the collection. Passing a UNA segment means setting/overriding the control
         characters and setting the serializer to output the Service String Advice. If you wish to change the control
         characters from the default and not output the Service String Advice, change self.characters instead,
@@ -341,7 +365,7 @@ class Message(AbstractSegmentsContainer):
     HEADER_TAG = "UNH"
     FOOTER_TAG = "UNT"
 
-    def __init__(self, reference_number: str, identifier: Tuple, *args, **kwargs):
+    def __init__(self, reference_number: str, identifier: List[str], *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.reference_number = reference_number
         self.identifier = identifier
@@ -360,16 +384,14 @@ class Message(AbstractSegmentsContainer):
         return "{}.{}".format(self.identifier[1], self.identifier[2])
 
     def get_header_segment(self) -> Segment:
-        return Segment(
-            self.HEADER_TAG,
+        return UNH(
             self.reference_number,
             [str(i) for i in self.identifier],
             *self.extra_header_elements,
         )
 
     def get_footer_segment(self) -> Segment:
-        return Segment(
-            self.FOOTER_TAG,
+        return UNT(
             str(len(self.segments) + 2),
             self.reference_number,
         )
@@ -436,26 +458,43 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
 
     def __init__(
         self,
-        sender: str,
-        recipient: str,
+        sender: Union[str, List[str]],
+        recipient: Union[str, List[str]],
         control_reference: str,
-        syntax_identifier: Tuple[str, int],
-        delimiters: Characters = Characters(),
+        syntax_identifier: List[Union[str, int]],
         timestamp: datetime.datetime = None,
         *args,
-        **kwargs
+        **kwargs,
     ):
         super().__init__(*args, **kwargs)
         self.sender = sender
         self.recipient = recipient
         self.control_reference = control_reference
         self.syntax_identifier = syntax_identifier
-        self.delimiters = delimiters
         self.timestamp = timestamp or datetime.datetime.now()
 
-    def get_header_segment(self) -> Segment:
-        return Segment(
-            self.HEADER_TAG,
+    @property
+    def delimiters(self) -> Characters:
+        # alias for backwards compatibility
+        warnings.warn(
+            "Usage of Interchange.delimiter is deprecated and will no longer be available in v0.2, "
+            "use characters instead.",
+            DeprecationWarning,
+        )
+        return self.characters
+
+    @delimiters.setter
+    def delimiters(self, delimiters: Characters) -> None:
+        # alias for backwards compatibility
+        warnings.warn(
+            "Usage of Interchange.delimiter is deprecated and will no longer be available in v0.2, "
+            "use characters instead.",
+            DeprecationWarning,
+        )
+        self.characters = delimiters
+
+    def get_header_segment(self) -> UNB:
+        return UNB(
             [str(i) for i in self.syntax_identifier],
             self.sender,
             self.recipient,
@@ -478,13 +517,12 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         if cnt == 0:
             cnt = len(self.segments)
 
-        return Segment(
-            self.FOOTER_TAG,
+        return UNZ(
             str(cnt),
             self.control_reference,
         )
 
-    def get_messages(self) -> List[Message]:
+    def get_messages(self) -> Iterable[Message]:
         """parses a list of messages out of the internal segments.
 
         :raises EDISyntaxError if constraints are not met (e.g. UNH/UNT both correct)
@@ -495,15 +533,19 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         message = None
         last_segment = None
         for segment in self.segments:
-            if segment.tag == "UNH":
+            if segment.tag == Message.HEADER_TAG:
                 if not message:
-                    message = Message(segment.elements[0], segment.elements[1])
+                    message = Message(
+                        reference_number=segment.elements[0],
+                        identifier=segment.elements[1],
+                        characters=self.characters,
+                    )
                     last_segment = segment
                 else:
                     raise EDISyntaxError(
                         "Missing UNT segment before new UNH: {}".format(segment)
                     )
-            elif segment.tag == "UNT":
+            elif segment.tag == Message.FOOTER_TAG:
                 if message:
                     yield message
                     message = None
@@ -516,11 +558,10 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
                 if message:
                     message.add_segment(segment)
                 last_segment = segment
-        if last_segment:
-            if not last_segment.tag == "UNT":
-                raise EDISyntaxError("UNH segment was not closed with a UNT segment.")
+        if last_segment and last_segment.tag != Message.FOOTER_TAG:
+            raise EDISyntaxError("UNH segment was not closed with a UNT segment.")
 
-    def add_message(self, message: Message) -> "Interchange":
+    def add_message(self, message: Message) -> Interchange:
         segments = (
             [message.get_header_segment()]
             + message.segments
@@ -530,38 +571,29 @@ class Interchange(FileSourcableMixin, UNAHandlingMixin, AbstractSegmentsContaine
         return self
 
     @classmethod
-    def from_segments(cls, segments: Union[list, Iterable]) -> "Interchange":
+    def from_segments(
+        cls, segments: Union[list, Iterable], characters: Optional[Characters] = None
+    ) -> Interchange:
         segments = iter(segments)
 
         first_segment = next(segments)
         if first_segment.tag == "UNA":
-            unb = next(segments)
+            unb: UNB = next(segments)
         elif first_segment.tag == "UNB":
-            unb = first_segment
+            unb: UNB = first_segment
         else:
             raise EDISyntaxError("An interchange must start with UNB or UNA and UNB")
-        # Loosy syntax check :
-        if len(unb.elements) < 4:
-            raise EDISyntaxError("Missing elements in UNB header")
-
-        # In syntax version 3 the year is formatted using two digits, while in version 4 four digits are used.
-        # Since some EDIFACT files in the wild don't adhere to this specification, we just use whatever format seems
-        # more appropriate according to the length of the date string.
-        if len(unb.elements[3][0]) == 6:
-            datetime_fmt = "%y%m%d-%H%M"
-        elif len(unb.elements[3][0]) == 8:
-            datetime_fmt = "%Y%m%d-%H%M"
-        else:
-            raise EDISyntaxError("Timestamp of file-creation malformed.")
 
         datetime_str = "-".join(unb.elements[3])
-        timestamp = datetime.datetime.strptime(datetime_str, datetime_fmt)
+        timestamp = datetime.datetime.strptime(datetime_str, unb.datetime_format)
         interchange = Interchange(
             syntax_identifier=unb.elements[0],
             sender=unb.elements[1],
             recipient=unb.elements[2],
             timestamp=timestamp,
             control_reference=unb.elements[4],
+            characters=characters,
+            extra_header_elements=unb.elements[5:],
         )
 
         if first_segment.tag == "UNA":

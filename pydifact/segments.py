@@ -19,6 +19,8 @@
 # LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 # OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 # THE SOFTWARE.
+from __future__ import annotations
+
 from typing import Union, List
 
 from pydifact.api import EDISyntaxError, PluginMount
@@ -31,18 +33,50 @@ class SegmentProvider(metaclass=PluginMount):
     Classes implementing this PluginMount should provide the following attributes:
     """
 
-    def __str__(self):
+    __omitted__: bool
+
+
+class SegmentInterface:
+    tag: str
+    elements: List[str, List[str], None]
+
+    def __str__(self) -> str:
         """Returns the user readable text representation of this segment."""
+        return "'{tag}' EDI segment: {elements}".format(
+            tag=self.tag, elements=str(self.elements)
+        )
+
+    def __repr__(self) -> str:
+        return "{} segment: {}".format(self.tag, str(self.elements))
+
+    def __eq__(self, other: SegmentInterface) -> bool:
+        # FIXME the other way round too? isinstance(other, type(self))?
+        return (
+            isinstance(self, type(other))
+            and self.tag == other.tag
+            and list(self.elements) == list(other.elements)
+        )
+
+    def __getitem__(self, key):
+        return self.elements[key]
+
+    def __setitem__(self, key, value):
+        self.elements[key] = value
 
     def validate(self) -> bool:
-        """Validates the Segment."""
+        """Validates the Segment.
+
+        This method must be overridden in implementing subclasses.
+        """
+        raise NotImplementedError
 
 
-class Segment(SegmentProvider):
+class Segment(SegmentInterface, SegmentProvider):
     """Represents a low-level segment of an EDI interchange.
 
-    This class is used internally. read-world implementations of specialized should subclass Segment and provide
-    the `tag` and `validate` attributes.
+    This class is used internally. read-world implementations of specialized
+    segments should subclass SegmentInterface and SegmentProvider and
+    implement the `tag` and `validate` attributes.
     """
 
     # tag is not a class attribute in this case, as each Segment instance could have another tag.
@@ -61,29 +95,6 @@ class Segment(SegmentProvider):
         # this is converted to a list (due to the fact that python creates a tuple
         # when passing a variable arguments list to a method)
         self.elements = list(elements)
-
-    def __str__(self) -> str:
-        """Returns the Segment in Python list printout"""
-        return "'{tag}' EDI segment: {elements}".format(
-            tag=self.tag, elements=str(self.elements)
-        )
-
-    def __repr__(self) -> str:
-        return "{} segment: {}".format(self.tag, str(self.elements))
-
-    def __eq__(self, other) -> bool:
-        # FIXME the other way round too? isinstance(other, type(self))?
-        return (
-            isinstance(self, type(other))
-            and self.tag == other.tag
-            and list(self.elements) == list(other.elements)
-        )
-
-    def __getitem__(self, key):
-        return self.elements[key]
-
-    def __setitem__(self, key, value):
-        self.elements[key] = value
 
     def validate(self) -> bool:
         """
@@ -105,21 +116,16 @@ class Segment(SegmentProvider):
 class SegmentFactory:
     """Factory for producing segments."""
 
-    characters = None
-
     @staticmethod
     def create_segment(
         name: str, *elements: Union[str, List[str]], validate: bool = True
-    ) -> Segment:
+    ) -> SegmentInterface:
         """Create a new instance of the relevant class type.
 
         :param name: The name of the segment
         :param elements: The data elements for this segment
         :param validate: bool if True, the created segment is validated before return
         """
-        if not SegmentFactory.characters:
-            SegmentFactory.characters = Characters()
-
         # Basic segment type validation is done here.
         # The more special validation must be done in the corresponding Segment
 
@@ -142,7 +148,7 @@ class SegmentFactory:
 
         for Plugin in SegmentProvider.plugins:
             if getattr(Plugin, "tag", "") == name:
-                s = Plugin(name, *elements)
+                s = Plugin(*elements)
                 break
         else:
             # we don't support this kind of EDIFACT segment (yet), so
@@ -155,5 +161,4 @@ class SegmentFactory:
                     "could not create '{}' Segment. Validation failed.".format(name)
                 )
 
-        # FIXME: characters is not used!
         return s
