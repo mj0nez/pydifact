@@ -33,6 +33,7 @@ class Component(ABC):
     """
 
     description: str
+    _content: str
 
     @property
     def parent(self) -> Component:
@@ -75,6 +76,11 @@ class Component(ABC):
         # a leaf yields itself, while a composite yields all matching children
         # and ONLY children!
         yield self
+
+    def set_component(
+        self, value: Union[str, list[str]], description: Optional[str] = None
+    ) -> None:
+        self._content = value
 
     @abstractmethod
     def to_dict(self) -> dict:
@@ -159,6 +165,23 @@ class Composite(Component):
         for child in self._children:
             if child.description == description:
                 yield child
+
+    def set_component(
+        self, value: Union[str, list[str]], description: Optional[str] = None
+    ) -> None:
+        # well, to adjust for repeating elements we require a specified syntax
+        # before setting the components
+        # so we check if we have enough values for matching children
+        # then we set them
+        matching_children = [c for c in self._children if c.description == description]
+
+        if len(matching_children) != len(value):
+            raise ValueError(
+                "Passed values do not match the number of stored elements!"
+            )
+
+        for child, val in zip(matching_children, value):
+            child.set_component(val, description)
 
     def is_composite(self) -> bool:
         return True

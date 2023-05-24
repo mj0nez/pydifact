@@ -166,3 +166,11 @@ def test_segment_group():
         segment_group.add(unt)
 
     print(segment_group)
+
+
+# TODO  find a way to loosen the repetition of data elements in an group
+#       e.g. when parsing a FTX segment we don't know the number of repeated
+#       elements before parsing...
+#       itertools.zip_longest could be sufficient....
+#       
+#       https://docs.python.org/3/library/itertools.html#itertools.zip_longest
