@@ -149,7 +149,7 @@ class Segment(AbstractMappingComponent):
             return
 
         if self.mandatory:
-            raise EDISyntaxError("Missing %s, found %s" % (self.tag, segment))
+            raise EDISyntaxError(f"Missing {self.tag}, found {segment}")
 
         self.__present__ = False
 
@@ -272,7 +272,7 @@ class Loop(AbstractMappingComponent):
             except EDISyntaxError:
                 iterator.prev()
                 if self.mandatory and i < self.min:
-                    raise EDISyntaxError("Missing %s" % (self.__component__.__name__))
+                    raise EDISyntaxError(f"Missing {self.__component__.__name__}")
                 break
 
             i += 1

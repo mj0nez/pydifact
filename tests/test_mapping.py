@@ -13,9 +13,11 @@
 #
 #    You should have received a copy of the GNU Lesser General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
-import unittest
 from pydifact.segmentcollection import Interchange
 from pydifact import Segment, mapping
+
+
+import pytest
 
 
 class BGM(Segment):
@@ -95,8 +97,7 @@ UNT+1+27'
 UNZ+1+0001'"""
 
 
-class MappingTest(unittest.TestCase):
-
+class TestMapping:
     def test_read_interchange(self):
         interchange = Interchange.from_str(SAMPLE)
         message = next(interchange.get_messages())
@@ -105,11 +106,7 @@ class MappingTest(unittest.TestCase):
             obj = Order()
             obj.from_message(message)
         except Exception as err:
-            raise AssertionError(
-                "Could not read Message into Order mapping! {}".format(
-                    repr(err)
-                )
-            )
+            raise AssertionError(f"Could not read Message into Order mapping! {err}")
 
     def test_ensure_mapped_bgm_segment(self):
         interchange = Interchange.from_str(SAMPLE)
@@ -118,7 +115,8 @@ class MappingTest(unittest.TestCase):
         obj = Order()
         obj.from_message(message)
 
-        self.assertTrue(isinstance(obj.purchase_order_id.to_segments(), BGM))
+        assert isinstance(obj.purchase_order_id.to_segments(), BGM) == True
+
 
 
 if __name__ == "__main__":
