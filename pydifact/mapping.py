@@ -261,6 +261,8 @@ class Loop(AbstractMappingComponent):
         self.__component__ = component
         self.value = []
 
+        self._repetitions = 0
+
     def from_segments(self, iterator: BiDirectionalIterator):
         i = 0
         while i < self.max:
@@ -279,6 +281,11 @@ class Loop(AbstractMappingComponent):
 
         if i < self.min:
             raise EDISyntaxError("Minimum required not met")
+
+        self._repetitions = i
+
+    def __len__(self) -> int:
+        return self._repetitions
 
     def to_segments(self):
         segments = []
