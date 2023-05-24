@@ -16,6 +16,9 @@
 from pydifact.segmentcollection import Interchange
 from pydifact import Segment, mapping
 
+from pydifact.parser import Parser
+from pydifact.mapping import BiDirectionalIterator
+from pydifact.segments import Segment
 
 import pytest
 
@@ -39,6 +42,17 @@ class OrderLine(mapping.SegmentGroup):
     moa = mapping.Segment("MOA")
     pri = mapping.Segment("PRI")
     rff = mapping.Segment("RFF", mandatory=True)
+
+
+class OrderLineExtended(mapping.SegmentGroup):
+    rff = mapping.Segment("RFF", mandatory=False)
+    line_id = mapping.Segment("LIN", mandatory=True)
+    description = mapping.Segment("IMD", mandatory=True)
+    quantity = mapping.Segment("QTY", mandatory=True)
+    moa = mapping.Segment("MOA")
+    pri = mapping.Segment("PRI")
+    rff = mapping.Segment("RFF", mandatory=True)
+    rff_2 = mapping.Segment("RFF", mandatory=False)
 
 
 class Order(mapping.SegmentGroup):
@@ -118,6 +132,49 @@ class TestMapping:
         assert isinstance(obj.purchase_order_id.to_segments(), BGM) == True
 
 
+@pytest.fixture
+def order_line_segments():
+    return [
+        s
+        for s in Parser().parse(
+            """LIN+1++121354654:BP'
+IMD+F++:::TPRG item description'
+QTY+21:2'
+MOA+203:200.00'
+PRI+AAA:100.00'
+RFF+LI:1'"""
+        )
+    ]
 
-if __name__ == "__main__":
-    unittest.main()
+
+class TestOrderLine:
+    def test_with_all_mandatory(self, order_line_segments):
+        obj = OrderLine()
+
+        obj.from_segments(BiDirectionalIterator(order_line_segments))
+
+        obj.to_segments()
+
+    def test_with_additional_at_start(self, order_line_segments):
+        obj = OrderLine()
+
+        obj.from_segments(
+            BiDirectionalIterator([Segment("RFF", "", "", "55"), *order_line_segments])
+        )
+
+        obj.to_segments()
+
+    def test_with_additional_at_end(self, order_line_segments):
+        obj = OrderLineExtended()
+
+        obj.from_segments(
+            BiDirectionalIterator(
+                [
+                    Segment("RFF", "", "", "55"),
+                    *order_line_segments,
+                    Segment("RFF", "", "", "55"),
+                ]
+            )
+        )
+
+        obj.to_segments()

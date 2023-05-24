@@ -191,6 +191,10 @@ class SegmentGroup(AbstractMappingComponent, metaclass=SegmentGroupMetaClass):
     Describes a group of AbstractMappingComponent
     """
 
+    # A mapping is defined order elements, which are either segments
+    # or a (repeating) group of segments. Therefore, we requires, that all
+    # segments are known to the mapping
+
     def from_segments(self, iterator: Iterator):
         icomponent = iter(self.__components__)
 
@@ -239,7 +243,10 @@ class SegmentGroup(AbstractMappingComponent, metaclass=SegmentGroupMetaClass):
 
     @property
     def present(self) -> bool:
-        return any(getattr(self, component_name).present for component_name in self.__components__)
+        return any(
+            getattr(self, component_name).present
+            for component_name in self.__components__
+        )
 
 
 class Loop(AbstractMappingComponent):
@@ -266,7 +273,6 @@ class Loop(AbstractMappingComponent):
     def from_segments(self, iterator: BiDirectionalIterator):
         i = 0
         while i < self.max:
-
             try:
                 component = self.__component__()
                 component.from_segments(iterator)
