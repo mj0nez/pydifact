@@ -21,18 +21,32 @@ from pydifact.mapping import BiDirectionalIterator
 from pydifact.segments import Segment
 
 import pytest
+from pydifact.segments import SegmentInterface, SegmentProvider
+from typing import Union, List
 
 
-class BGM(Segment):
+class BGM(SegmentInterface, SegmentProvider):
     __omitted__ = False
 
     tag = "BGM"
 
+    def __init__(self, *elements: Union[str, List[str], None]) -> None:
+        self.elements = list(elements)
 
-class LIN(Segment):
+    def validate(self) -> bool:
+        return True
+
+
+class LIN(SegmentInterface, SegmentProvider):
     __omitted__ = False
 
     tag = "LIN"
+
+    def __init__(self, *elements: Union[str, List[str], None]) -> None:
+        self.elements = list(elements)
+
+    def validate(self) -> bool:
+        return True
 
 
 class OrderLine(mapping.SegmentGroup):
