@@ -57,6 +57,7 @@ prof
 .kdev4
 .venv*
 Pipfile.lock
+
 ### VisualStudioCode ###
 .vscode/*
 
