@@ -172,5 +172,5 @@ def test_segment_group():
 #       e.g. when parsing a FTX segment we don't know the number of repeated
 #       elements before parsing...
 #       itertools.zip_longest could be sufficient....
-#       
+#
 #       https://docs.python.org/3/library/itertools.html#itertools.zip_longest

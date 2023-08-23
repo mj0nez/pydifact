@@ -403,6 +403,7 @@ class Message(AbstractSegmentsContainer):
         """
 
         pass
+
     @classmethod
     def from_segments(
         cls, reference_number, identifier, segments: list or collections.Iterable

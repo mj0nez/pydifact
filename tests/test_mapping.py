@@ -13,6 +13,7 @@
 #
 #    You should have received a copy of the GNU Lesser General Public License
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+from pydifact.api import EDISyntaxError
 from pydifact.segmentcollection import Interchange
 from pydifact import Segment, mapping
 
@@ -170,13 +171,16 @@ class TestOrderLine:
         obj.to_segments()
 
     def test_with_additional_at_start(self, order_line_segments):
+        # We expect a EDISyntaxError because the additional RFF Segment 
+        # cannot be mapped to the OderLine.
         obj = OrderLine()
 
-        obj.from_segments(
-            BiDirectionalIterator([Segment("RFF", "", "", "55"), *order_line_segments])
-        )
-
-        obj.to_segments()
+        with pytest.raises(EDISyntaxError):
+            obj.from_segments(
+                BiDirectionalIterator(
+                    [Segment("RFF", "", "", "55"), *order_line_segments]
+                )
+            )
 
     def test_with_additional_at_end(self, order_line_segments):
         obj = OrderLineExtended()

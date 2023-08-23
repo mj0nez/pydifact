@@ -30,7 +30,7 @@ from pydifact.segments import Segment as Seg, SegmentFactory
 
 class BiDirectionalIterator:
     """
-    Bi-directional iterator. Used as a convenience when parsing Message
+    Bi-directional iterator. Used as a convenience when parsing Messages.
     Segments.
     """
 
@@ -192,8 +192,8 @@ class SegmentGroup(AbstractMappingComponent, metaclass=SegmentGroupMetaClass):
     """
 
     # A mapping is defined order elements, which are either segments
-    # or a (repeating) group of segments. Therefore, we requires, that all
-    # segments are known to the mapping
+    # or a (repeating) group of segments. Therefore, it's required, that all
+    # segments are known to the mapping.
 
     def from_segments(self, iterator: Iterator):
         icomponent = iter(self.__components__)
@@ -280,6 +280,9 @@ class Loop(AbstractMappingComponent):
             except EDISyntaxError:
                 iterator.prev()
                 if self.mandatory and i < self.min:
+                    # Although, the message indicates that segment x is missing, 
+                    # it is also possible, that we have an additional segment 
+                    # which couldn't be mapped but the current component is mandatory.
                     raise EDISyntaxError(f"Missing {self.__component__.__name__}")
                 break
 
